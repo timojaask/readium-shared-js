@@ -143,7 +143,7 @@ var CfiNavigationLogic = function(options) {
      * @param {boolean} [isVwm]           isVerticalWritingMode
      * @returns {boolean}
      */
-    function isRectVisible(rect, ignorePartiallyVisible, frameDimensions, isVwm) {
+    function isRectVisible(rect, frameDimensions, isVwm) {
 
         frameDimensions = frameDimensions || getFrameDimensions();
         isVwm = isVwm || isVerticalWritingMode();
@@ -156,13 +156,11 @@ var CfiNavigationLogic = function(options) {
         if (rect.left == 0 && rect.right == 0 && rect.top == 0 && rect.bottom == 0) {
             return false;
         }
-
-        if (isPaginatedView()) {
-            return (rect.left >= 0 && rect.left < frameDimensions.width) || 
-                (!ignorePartiallyVisible && rect.left < 0 && rect.right >= 0);
+        
+        if (isPaginatedView() && !isVwm) {
+            return rect.left >= 0 && rect.left < frameDimensions.width;
         } else {
-            return (rect.top >= 0 && rect.top < frameDimensions.height) || 
-                (!ignorePartiallyVisible && rect.top < 0 && rect.bottom >= 0);
+            return rect.top >= 0 && rect.top < frameDimensions.height;
         }
 
     }
@@ -191,12 +189,13 @@ var CfiNavigationLogic = function(options) {
      *
      * @returns {Object}
      */
-    function getVisibleContentOffsets() {
+    function getVisibleContentOffsets(useVwmOffsets) {
+        
         if (options.visibleContentOffsets) {
             return options.visibleContentOffsets();
         }
 
-        if (isVerticalWritingMode()) {
+        if (useVwmOffsets) {
             return {
                 top: (options.paginationInfo ? options.paginationInfo.pageOffset : 0),
                 left: 0
@@ -226,8 +225,9 @@ var CfiNavigationLogic = function(options) {
      *      null for elements with display:none
      */
     function checkVisibilityByRectangles($element, shouldCalculateVisibilityPercentage, visibleContentOffsets, frameDimensions) {
-        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets();
+        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets(false);
         frameDimensions = frameDimensions || getFrameDimensions();
+        isVwm = isVerticalWritingMode();
 
         var elementRectangles = getNormalizedRectangles($element, visibleContentOffsets);
 
@@ -241,7 +241,7 @@ var CfiNavigationLogic = function(options) {
         if (clientRectangles.length === 1) {
             var adjustedRect = clientRectangles[0];
             
-            if (isPaginatedView()) {
+            if (isPaginatedView() && !isVwm) {
                 if (adjustedRect.bottom > frameDimensions.height || adjustedRect.top < 0) {
                     // because of webkit inconsistency, that single rectangle should be adjusted
                     // until it hits the end OR will be based on the FIRST column that is visible
@@ -249,12 +249,17 @@ var CfiNavigationLogic = function(options) {
                 }
             }
 
-            if (isRectVisible(adjustedRect, false, frameDimensions)) {
-                //it might still be partially visible in webkit
-                if (shouldCalculateVisibilityPercentage && adjustedRect.top < 0) {
-                    visibilityPercentage =
-                        Math.floor(100 * (adjustedRect.height + adjustedRect.top) / adjustedRect.height);
-                } else {
+            if (isRectVisible(adjustedRect, frameDimensions, isVwm)) {
+                visibilityPercentage = 100;
+                
+                if (isPaginatedView() && !isVwm) {
+                    //it might still be partially visible in webkit
+                    if (shouldCalculateVisibilityPercentage && adjustedRect.top < 0) {
+                        visibilityPercentage =
+                            Math.floor(100 * (adjustedRect.height + adjustedRect.top) / adjustedRect.height);
+                    }
+                } else if (isVwm && shouldCalculateVisibilityPercentage) {
+                    //visibilityPercentage = Math.floor(100 * (adjustedRect.height + adjustedRect.top) / adjustedRect.height);
                     visibilityPercentage = 100;
                 }
             }
@@ -263,7 +268,7 @@ var CfiNavigationLogic = function(options) {
             // both Firefox and IE produce as many client rectangles;
             // each of those should be checked
             for (var i = 0, l = clientRectangles.length; i < l; ++i) {
-                if (isRectVisible(clientRectangles[i], false, frameDimensions)) {
+                if (isRectVisible(clientRectangles[i], frameDimensions, isVwm)) {
                     visibilityPercentage = shouldCalculateVisibilityPercentage
                         ? measureVisibilityPercentageByRectangles(clientRectangles, i)
                         : 100;
@@ -285,7 +290,7 @@ var CfiNavigationLogic = function(options) {
      */
     function findPageByRectangles($element, spatialVerticalOffset) {
 
-        var visibleContentOffsets = getVisibleContentOffsets();
+        var visibleContentOffsets = getVisibleContentOffsets(false);
         var elementRectangles = getNormalizedRectangles($element, visibleContentOffsets);
 
         var clientRectangles  = elementRectangles.clientRectangles;
@@ -355,7 +360,7 @@ var CfiNavigationLogic = function(options) {
      * @returns {number|null}
      */
     function findPageBySingleRectangle(clientRectangle, visibleContentOffsets, frameDimensions) {
-        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets();
+        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets(false);
         frameDimensions = frameDimensions || getFrameDimensions();
         
         var normalizedRectangle = normalizeRectangle(
@@ -534,7 +539,7 @@ var CfiNavigationLogic = function(options) {
         // (i.e., is the first visible one).
         if (shouldLookForFirstVisibleColumn) {
             while (rect.bottom >= frameDimensions.height) {
-                if (isRectVisible(rect, false, frameDimensions, isVwm)) {
+                if (isRectVisible(rect, frameDimensions, isVwm)) {
                     break;
                 }
                 offsetRectangle(rect, columnFullWidth, -frameDimensions.height);
@@ -627,7 +632,7 @@ var CfiNavigationLogic = function(options) {
                 return null;
             }
             var testRect = getNodeContentsClientRect(elementFromPoint);
-            if (!isRectVisible(testRect, false)) {
+            if (!isRectVisible(testRect)) {
                 return null;
             }
             if ((x < testRect.left || x > testRect.right) || (y < testRect.top || y > testRect.bottom)) {
@@ -741,12 +746,14 @@ var CfiNavigationLogic = function(options) {
     }
 
     function getVisibleTextRangeOffsetsSelectedByFunc(textNode, pickerFunc, visibleContentOffsets, frameDimensions) {
-        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets();
+        isVwm = isVerticalWritingMode();
+        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets(isVwm);
+        frameDimensions = frameDimensions || getFrameDimensions();
         
         var textNodeFragments = getNodeClientRectList(textNode, visibleContentOffsets);
 
         var visibleFragments = _.filter(textNodeFragments, function (rect) {
-            return isRectVisible(rect, false, frameDimensions);
+            return isRectVisible(rect, frameDimensions);
         });
 
         var fragment = pickerFunc(visibleFragments);
@@ -755,9 +762,14 @@ var CfiNavigationLogic = function(options) {
             return null;
         }
         var fragmentCorner = pickerFunc(getTextNodeRectCornerPairs(fragment));
-        // Reverse taking into account of visible content offsets
-        fragmentCorner.x -= visibleContentOffsets.left;
-        fragmentCorner.y -= visibleContentOffsets.top;
+        
+        if (!isVwm) {
+            // Reverse taking into account of visible content offsets
+            fragmentCorner.x -= visibleContentOffsets.left;
+            fragmentCorner.y -= visibleContentOffsets.top;        
+        } else {
+            
+        }
         
         var caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y);
         console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a0');
@@ -840,7 +852,7 @@ var CfiNavigationLogic = function(options) {
             if (!visibleRange) {
                 //the text node is valid, but not visible..
                 //let's try again with the next node in the list
-                return findVisibleLeafNodeCfi(leafNodeList, pickerFunc, visibleLeafNode, visibleContentOffsets, frameDimensions);
+                //return findVisibleLeafNodeCfi(leafNodeList, pickerFunc, visibleLeafNode, visibleContentOffsets, frameDimensions);
             }
             var range = createRange();
             range.setStart(textNode, visibleRange.start);
@@ -1054,7 +1066,7 @@ var CfiNavigationLogic = function(options) {
     this.isNodeFromRangeCfiVisible = function (cfi) {
         var nodeRangeInfo = this.getNodeRangeInfoFromCfi(cfi);
         if (nodeRangeInfo) {
-            return isRectVisible(nodeRangeInfo.clientRect, false);
+            return isRectVisible(nodeRangeInfo.clientRect);
         } else {
             return undefined;
         }

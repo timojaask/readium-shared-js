@@ -1471,13 +1471,9 @@ var ScrollView = function (options, isContinuousScroll, reader) {
             function() {
                 var height = selectedPageView.element().height();
                 
-                if (pageViewTopOffset >= 0) {
-                    height = viewHeight() - pageViewTopOffset;
-                }
-
                 frameDimensions = {
                     width: selectedPageView.element().width(),
-                    height: height
+                    height: Math.min(viewHeight() - pageViewTopOffset, height)
                 };
                 
                 visibleContentOffsets = {
