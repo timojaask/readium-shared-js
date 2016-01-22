@@ -57,16 +57,18 @@ var CfiNavigationLogic = function(options) {
         return self.getRootDocument().createRange();
     }
 
-    function getNodeClientRect(node) {
+    function getNodeClientRect(node, visibleContentOffsets) {
+        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets();
         var range = createRange();
         range.selectNode(node);
-        return normalizeRectangle(range.getBoundingClientRect(),0,0);
+        return normalizeRectangle(range.getBoundingClientRect(), visibleContentOffsets.left, visibleContentOffsets.top);
     }
 
-    function getNodeContentsClientRect(node) {
+    function getNodeContentsClientRect(node, visibleContentOffsets) {
+        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets();
         var range = createRange();
         range.selectNodeContents(node);
-        return normalizeRectangle(range.getBoundingClientRect(),0,0);
+        return normalizeRectangle(range.getBoundingClientRect(), visibleContentOffsets.left, visibleContentOffsets.top);
     }
 
     function getElementClientRect($element) {
@@ -189,17 +191,10 @@ var CfiNavigationLogic = function(options) {
      *
      * @returns {Object}
      */
-    function getVisibleContentOffsets(useVwmOffsets) {
+    function getVisibleContentOffsets() {
         
         if (options.visibleContentOffsets) {
             return options.visibleContentOffsets();
-        }
-
-        if (useVwmOffsets) {
-            return {
-                top: (options.paginationInfo ? options.paginationInfo.pageOffset : 0),
-                left: 0
-            };
         }
 
         return {
@@ -225,13 +220,12 @@ var CfiNavigationLogic = function(options) {
      *      null for elements with display:none
      */
     function checkVisibilityByRectangles($element, shouldCalculateVisibilityPercentage, visibleContentOffsets, frameDimensions) {
-        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets(false);
+        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets();
         frameDimensions = frameDimensions || getFrameDimensions();
         isVwm = isVerticalWritingMode();
+        
+        var clientRectangles = getNodeClientRectList($element[0]);
 
-        var elementRectangles = getNormalizedRectangles($element, visibleContentOffsets);
-
-        var clientRectangles = elementRectangles.clientRectangles;
         if (clientRectangles.length === 0) { // elements with display:none, etc.
             return null;
         }
@@ -290,7 +284,7 @@ var CfiNavigationLogic = function(options) {
      */
     function findPageByRectangles($element, spatialVerticalOffset) {
 
-        var visibleContentOffsets = getVisibleContentOffsets(false);
+        var visibleContentOffsets = getVisibleContentOffsets();
         var elementRectangles = getNormalizedRectangles($element, visibleContentOffsets);
 
         var clientRectangles  = elementRectangles.clientRectangles;
@@ -360,7 +354,7 @@ var CfiNavigationLogic = function(options) {
      * @returns {number|null}
      */
     function findPageBySingleRectangle(clientRectangle, visibleContentOffsets, frameDimensions) {
-        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets(false);
+        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets();
         frameDimensions = frameDimensions || getFrameDimensions();
         
         var normalizedRectangle = normalizeRectangle(
@@ -747,7 +741,7 @@ var CfiNavigationLogic = function(options) {
 
     function getVisibleTextRangeOffsetsSelectedByFunc(textNode, pickerFunc, visibleContentOffsets, frameDimensions) {
         isVwm = isVerticalWritingMode();
-        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets(isVwm);
+        visibleContentOffsets = visibleContentOffsets || getVisibleContentOffsets();
         frameDimensions = frameDimensions || getFrameDimensions();
         
         var textNodeFragments = getNodeClientRectList(textNode, visibleContentOffsets);
@@ -766,65 +760,120 @@ var CfiNavigationLogic = function(options) {
         if (!isVwm) {
             // Reverse taking into account of visible content offsets
             fragmentCorner.x -= visibleContentOffsets.left;
-            fragmentCorner.y -= visibleContentOffsets.top;        
-        } else {
+            fragmentCorner.y -= visibleContentOffsets.top;
             
-        }
-        
-        var caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y);
-        console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a0');
-        // Desperately try to find it from all angles! Darn sub pixeling..
-        //TODO: remove the need for this brute-force method, since it's making the result non-deterministic
-        if (!caretRange || caretRange.startContainer !== textNode) {
-            caretRange = getCaretRangeFromPoint(fragmentCorner.x - 1, fragmentCorner.y);
-            console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a1');
-        }
-        if (!caretRange || caretRange.startContainer !== textNode) {
-            caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y - 1);
-            console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a2');
-        }
-        if (!caretRange || caretRange.startContainer !== textNode) {
-            caretRange = getCaretRangeFromPoint(fragmentCorner.x - 1, fragmentCorner.y - 1);
-            console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a3');
-        }
-        if (!caretRange || caretRange.startContainer !== textNode) {
-            fragmentCorner.x = Math.floor(fragmentCorner.x);
-            fragmentCorner.y = Math.floor(fragmentCorner.y);
-            caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y);
-            console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'b0');
-        }
-        // Desperately try to find it from all angles! Darn sub pixeling..
-        if (!caretRange || caretRange.startContainer !== textNode) {
-            caretRange = getCaretRangeFromPoint(fragmentCorner.x - 1, fragmentCorner.y);
-            console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'b1');
-        }
-        if (!caretRange || caretRange.startContainer !== textNode) {
-            caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y - 1);
-            console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'b2');
-        }
-        if (!caretRange || caretRange.startContainer !== textNode) {
-            caretRange = getCaretRangeFromPoint(fragmentCorner.x - 1, fragmentCorner.y - 1);
-            console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'b3');
-        }
+            var caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y);
+            console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a0');
+            // Desperately try to find it from all angles! Darn sub pixeling..
+            //TODO: remove the need for this brute-force method, since it's making the result non-deterministic
+            if (!caretRange || caretRange.startContainer !== textNode) {
+                caretRange = getCaretRangeFromPoint(fragmentCorner.x - 1, fragmentCorner.y);
+                console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a1');
+            }
+            if (!caretRange || caretRange.startContainer !== textNode) {
+                caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y - 1);
+                console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a2');
+            }
+            if (!caretRange || caretRange.startContainer !== textNode) {
+                caretRange = getCaretRangeFromPoint(fragmentCorner.x - 1, fragmentCorner.y - 1);
+                console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'a3');
+            }
+            if (!caretRange || caretRange.startContainer !== textNode) {
+                fragmentCorner.x = Math.floor(fragmentCorner.x);
+                fragmentCorner.y = Math.floor(fragmentCorner.y);
+                caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y);
+                console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'b0');
+            }
+            // Desperately try to find it from all angles! Darn sub pixeling..
+            if (!caretRange || caretRange.startContainer !== textNode) {
+                caretRange = getCaretRangeFromPoint(fragmentCorner.x - 1, fragmentCorner.y);
+                console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'b1');
+            }
+            if (!caretRange || caretRange.startContainer !== textNode) {
+                caretRange = getCaretRangeFromPoint(fragmentCorner.x, fragmentCorner.y - 1);
+                console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'b2');
+            }
+            if (!caretRange || caretRange.startContainer !== textNode) {
+                caretRange = getCaretRangeFromPoint(fragmentCorner.x - 1, fragmentCorner.y - 1);
+                console.log('getVisibleTextRangeOffsetsSelectedByFunc: ', 'b3');
+            }
 
-        // Still nothing? fall through..
-        if (!caretRange) {
-            console.warn('getVisibleTextRangeOffsetsSelectedByFunc: no caret range result');
-            return null;
-        }
+            // Still nothing? fall through..
+            if (!caretRange) {
+                console.warn('getVisibleTextRangeOffsetsSelectedByFunc: no caret range result');
+                return null;
+            }
 
-        if (caretRange.startContainer === textNode) {
-            return pickerFunc(
-                [{start: caretRange.startOffset, end: caretRange.startOffset + 1},
-                {start: caretRange.startOffset - 1, end: caretRange.startOffset}]
-            );
+            if (caretRange.startContainer === textNode) {
+                return pickerFunc(
+                    [{start: caretRange.startOffset, end: caretRange.startOffset + 1},
+                    {start: caretRange.startOffset - 1, end: caretRange.startOffset}]
+                );
+            } else {
+                console.warn('getVisibleTextRangeOffsetsSelectedByFunc: incorrect caret range result');
+                return null;
+            }
+            
         } else {
-            console.warn('getVisibleTextRangeOffsetsSelectedByFunc: incorrect caret range result');
-            return null;
+            var textNodeText = textNode.textContent;
+            var textLength = textNodeText.length;
+            
+            if (textNodeFragments.length > 1 && visibleFragments.length !== textNodeFragments.length) {
+                var fragmentsTotalHeight = _.reduce(_.pluck(textNodeFragments, 'height'), function(m, v) {
+                    return m + v;
+                }, 0);
+
+                var avgCharHeight = fragmentsTotalHeight / textLength;
+
+                var visibleFragment = pickerFunc(visibleFragments);
+                var indexOfVisibleFragment = _.indexOf(textNodeFragments, visibleFragment);
+                var indexOfNonVisibleFragment = _.indexOf(textNodeFragments, pickerFunc(_.difference(textNodeFragments, visibleFragments)));
+
+                var fragmentEstimatedTextLength = Math.round(visibleFragment.height / avgCharHeight);
+
+                var range = _.head(textNodeFragments, indexOfVisibleFragment), flippedDirection = indexOfVisibleFragment > indexOfNonVisibleFragment;
+                var precedingHeight = _.reduce(_.pluck(range, 'height'), function(m, v) {
+                    return m + v;
+                }, 0);
+                
+                var precedingEstimatedTextLength = Math.min(Math.round(precedingHeight / avgCharHeight), textLength);
+                var totalEstimatedTextLength = Math.min(precedingEstimatedTextLength + fragmentEstimatedTextLength, textLength);
+
+                var result;
+                
+                if (flippedDirection) {
+                    result = [{
+                        start: precedingEstimatedTextLength,
+                        end: precedingEstimatedTextLength + 1
+                    }, {
+                        start: totalEstimatedTextLength - 1,
+                        end: totalEstimatedTextLength
+                    }];
+                } else {
+                    result = [{
+                        start: precedingEstimatedTextLength - 1,
+                        end: precedingEstimatedTextLength
+                    }, {
+                        start: totalEstimatedTextLength - 1,
+                        end: totalEstimatedTextLength
+                    }];
+                }
+                
+                return pickerFunc(result);
+            } else {
+                return pickerFunc([{
+                    start: 0,
+                    end: 1
+                }, {
+                    start: textLength - 1,
+                    end: textLength
+                }]);
+            }
+
         }
     }
 
-    function findVisibleLeafNodeCfi(leafNodeList, pickerFunc, targetLeafNode, visibleContentOffsets, frameDimensions) {
+    function findVisibleLeafNodeCfi(leafNodeList, pickerFunc, targetLeafNode, visibleContentOffsets, frameDimensions, originalParentNode) {
         var index = 0;
         if (!targetLeafNode) {
             index = leafNodeList.indexOf(pickerFunc(leafNodeList))
@@ -837,30 +886,36 @@ var CfiNavigationLogic = function(options) {
             // use the next leaf node in the list
             index += pickerFunc([1, -1]);
         }
+
         var visibleLeafNode = leafNodeList[index];
 
         if (!visibleLeafNode) {
-            return null;
+            return null;            
         }
 
-        var element = visibleLeafNode.element;
-        var textNode = visibleLeafNode.textNode;
-
+        var visibleLeafNodeParent = visibleLeafNode.element;
+        var visibleLeafNodeTextNode = visibleLeafNode.textNode;
+    
         //if a valid text node is found, try to generate a CFI with range offsets
-        if (textNode && isValidTextNode(textNode)) {
-            var visibleRange = getVisibleTextRangeOffsetsSelectedByFunc(textNode, pickerFunc, visibleContentOffsets, frameDimensions);
+        if (visibleLeafNodeTextNode && isValidTextNode(visibleLeafNodeTextNode)) {
+            // exit recursion if traversed outside of the original parentNode level
+            if (originalParentNode && originalParentNode !== visibleLeafNodeParent) {
+                return null;            
+            }
+            
+            var visibleRange = getVisibleTextRangeOffsetsSelectedByFunc(visibleLeafNodeTextNode, pickerFunc, visibleContentOffsets, frameDimensions);
             if (!visibleRange) {
                 //the text node is valid, but not visible..
                 //let's try again with the next node in the list
-                //return findVisibleLeafNodeCfi(leafNodeList, pickerFunc, visibleLeafNode, visibleContentOffsets, frameDimensions);
+                return findVisibleLeafNodeCfi(leafNodeList, pickerFunc, visibleLeafNode, visibleContentOffsets, frameDimensions, (originalParentNode || visibleLeafNodeParent));
             }
             var range = createRange();
-            range.setStart(textNode, visibleRange.start);
-            range.setEnd(textNode, visibleRange.end);
+            range.setStart(visibleLeafNodeTextNode, visibleRange.start);
+            range.setEnd(visibleLeafNodeTextNode, visibleRange.end);
             return generateCfiFromDomRange(range);
         } else {
-            //if not then generate a CFI for the element
-            return self.getCfiForElement(element);
+            //if not then generate a CFI for the element (or parent of a text node)
+            return self.getCfiForElement(visibleLeafNodeParent);
         }
     }
 
@@ -1519,7 +1574,7 @@ var CfiNavigationLogic = function(options) {
                         color = 'red';
                     }
                     overlayDiv.style.border = '1px dashed ' + color;
-                    overlayDiv.style.background = 'yellow';
+                        overlayDiv.style.background = 'yellow';
                 }
 
                 overlayDiv.style.margin = overlayDiv.style.padding = '0';
