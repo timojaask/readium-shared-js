@@ -1571,10 +1571,12 @@ var CfiNavigationLogic = function(options) {
                     overlayDiv.style.background = random;
                 } else {
                     if (color === true) {
-                        color = 'red';
-                    }
-                    overlayDiv.style.border = '1px dashed ' + color;
+                        overlayDiv.style.border = '1px dashed red';
                         overlayDiv.style.background = 'yellow';
+                    } else {
+                        overlayDiv.style.border = '1px dashed gray';
+                        overlayDiv.style.background = color;
+                    }
                 }
 
                 overlayDiv.style.margin = overlayDiv.style.padding = '0';
@@ -1588,7 +1590,9 @@ var CfiNavigationLogic = function(options) {
             }
         }
 
-        function drawDebugOverlayFromRect(rect) {
+        function drawDebugOverlayFromRect(rect, color) {
+            color = color || true;
+            
             var leftOffset, topOffset;
 
             if (isVerticalWritingMode()) {
@@ -1604,21 +1608,21 @@ var CfiNavigationLogic = function(options) {
                 top: rect.top + topOffset,
                 width: rect.width,
                 height: rect.height
-            }, true, self.getRootDocument());
+            }, color, self.getRootDocument());
         }
 
-        function drawDebugOverlayFromDomRange(range) {
+        function drawDebugOverlayFromDomRange(range, color) {
             var rect = getNodeRangeClientRect(
                 range.startContainer,
                 range.startOffset,
                 range.endContainer,
                 range.endOffset);
-            drawDebugOverlayFromRect(rect);
+            drawDebugOverlayFromRect(rect, color);
             return rect;
         }
 
-        function drawDebugOverlayFromNode(node) {
-            drawDebugOverlayFromRect(getNodeClientRect(node));
+        function drawDebugOverlayFromNode(node, color) {
+            drawDebugOverlayFromRect(getNodeClientRect(node), color);
         }
 
         function getPaginationLeftOffset() {
@@ -1651,11 +1655,32 @@ var CfiNavigationLogic = function(options) {
 
                 var cfi1 = ReadiumSDK.reader.getFirstVisibleCfi();
                 var range1 = ReadiumSDK.reader.getDomRangeFromRangeCfi(cfi1);
-                console.log(cfi1, range1, drawDebugOverlayFromDomRange(range1));
+                console.log(cfi1, range1, drawDebugOverlayFromDomRange(range1, 'cyan'));
 
                 var cfi2 = ReadiumSDK.reader.getLastVisibleCfi();
                 var range2 = ReadiumSDK.reader.getDomRangeFromRangeCfi(cfi2);
-                console.log(cfi2, range2, drawDebugOverlayFromDomRange(range2));
+                console.log(cfi2, range2, drawDebugOverlayFromDomRange(range2, 'orange'));
+            },
+            profileVisibleCfis: function () {
+                console.time("visibleCfis-total");
+                console.time("visibleCfis-first");
+                var first = ReadiumSDK.reader.getFirstVisibleCfi();
+                console.timeEnd("visibleCfis-first");
+                console.time("visibleCfis-last");
+                var last = ReadiumSDK.reader.getLastVisibleCfi();
+                console.timeEnd("visibleCfis-last");
+                console.timeEnd("visibleCfis-total");
+                console.log(first);
+                console.log(last);
+            },
+            cacheEnabled: function(value) {
+                if (value === undefined) {
+                    return _cacheEnabled;
+                }
+                _cacheEnabled = value;
+            },
+            clearCache: function() {
+                _cache._invalidate();
             }
         };
 
