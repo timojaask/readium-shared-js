@@ -433,14 +433,14 @@ var ReflowableView = function(options, reader){
 
         if(_isWaitingFrameRender) {
             _deferredPageRequest = pageRequest;
-            return;
+            return false;
         }
 
         // if no spine item specified we are talking about current spine item
         if(pageRequest.spineItem && pageRequest.spineItem != _currentSpineItem) {
             _deferredPageRequest = pageRequest;
             loadSpineItem(pageRequest.spineItem);
-            return;
+            return true;
         }
 
         var pageIndex = undefined;
@@ -485,6 +485,7 @@ var ReflowableView = function(options, reader){
         _paginationInfo.currentPageIndex = pageIndex;
         _paginationInfo.currentSpreadIndex = Math.floor(pageIndex / _paginationInfo.visibleColumnCount);
         onPaginationChanged(pageRequest.initiator, pageRequest.spineItem, pageRequest.elementId);
+        return true;
     };
 
     function redraw() {
@@ -547,12 +548,13 @@ var ReflowableView = function(options, reader){
     this.openPagePrev = function (initiator) {
 
         if(!_currentSpineItem) {
-            return;
+            return false;
         }
 
         if(_paginationInfo.currentSpreadIndex > 0) {
             _paginationInfo.currentSpreadIndex--;
             onPaginationChanged(initiator);
+            return true;
         }
         else {
 
@@ -561,7 +563,7 @@ var ReflowableView = function(options, reader){
 
                 var pageRequest = new PageOpenRequest(prevSpineItem, initiator);
                 pageRequest.setLastPage();
-                self.openPage(pageRequest);
+                return self.openPage(pageRequest);
             }
         }
     };
@@ -569,12 +571,13 @@ var ReflowableView = function(options, reader){
     this.openPageNext = function (initiator) {
 
         if(!_currentSpineItem) {
-            return;
+            return false;
         }
 
         if(_paginationInfo.currentSpreadIndex < _paginationInfo.spreadCount - 1) {
             _paginationInfo.currentSpreadIndex++;
             onPaginationChanged(initiator);
+            return true;
         }
         else {
 
@@ -583,7 +586,7 @@ var ReflowableView = function(options, reader){
 
                 var pageRequest = new PageOpenRequest(nextSpineItem, initiator);
                 pageRequest.setFirstPage();
-                self.openPage(pageRequest);
+                return self.openPage(pageRequest);
             }
         }
     };

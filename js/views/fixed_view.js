@@ -61,7 +61,7 @@ var FixedView = function(options, reader){
     var _spread = new Spread(_spine, false);
     var _bookMargins;
     var _contentMetaSize;
-    var _isRedrowing = false;
+    var _isRedrawing = false;
     var _redrawRequest = false;
 
     function createOnePageView(elementClass) {
@@ -155,12 +155,12 @@ var FixedView = function(options, reader){
 
     function redraw(initiator, paginationRequest) {
 
-        if(_isRedrowing) {
+        if(_isRedrawing) {
             _redrawRequest = {initiator: initiator, paginationRequest: paginationRequest};
-            return;
+            return false;
         }
 
-        _isRedrowing = true;
+        _isRedrawing = true;
 
         var context = {isElementAdded : false};
 
@@ -170,7 +170,7 @@ var FixedView = function(options, reader){
             {pageView: _centerPageView, spineItem: _spread.centerItem, context: context}]);
 
         $.when.apply($, pageLoadDeferrals).done(function(){
-            _isRedrowing = false;
+            _isRedrawing = false;
 
             if(_redrawRequest) {
                 var p1 = _redrawRequest.initiator;
@@ -199,7 +199,7 @@ var FixedView = function(options, reader){
             }
 
         });
-
+        return true;
     }
 
     // dir: 0 => new or same page, 1 => previous, 2 => next
@@ -489,8 +489,8 @@ var FixedView = function(options, reader){
     // dir: 0 => new or same page, 1 => previous, 2 => next
     this.openPage =  function(paginationRequest, dir) {
 
-        if(!paginationRequest.spineItem) {
-            return;
+        if (!paginationRequest.spineItem) {
+            return false;
         }
 
         var leftItem = _spread.leftItem;
@@ -508,8 +508,10 @@ var FixedView = function(options, reader){
         updatePageSwitchDir(dir === 0 ? 0 : (_spread.spine.isRightToLeft() ? (dir === 1 ? 2 : 1) : dir), hasChanged);
         
         if (hasChanged) {
-            redraw(paginationRequest.initiator, paginationRequest); // this will call onPaginationChanged
+            return redraw(paginationRequest.initiator, paginationRequest); // this will call onPaginationChanged
         }
+
+        return true;
     };
 
 
@@ -519,7 +521,7 @@ var FixedView = function(options, reader){
         
         updatePageSwitchDir(_spread.spine.isRightToLeft() ? 2 : 1, true);
         
-        redraw(initiator, undefined);
+        return redraw(initiator, undefined);
     };
 
     this.openPageNext = function(initiator) {
@@ -527,8 +529,8 @@ var FixedView = function(options, reader){
         _spread.openNext();
         
         updatePageSwitchDir(_spread.spine.isRightToLeft() ? 1 : 2, true);
-        
-        redraw(initiator, undefined);
+
+        return redraw(initiator, undefined);
     };
 
     function updatePageViewForItem(pageView, item, context) {
