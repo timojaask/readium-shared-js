@@ -190,7 +190,7 @@ var FixedView = function(options, reader){
 
                 if (paginationRequest)
                 {
-                    onPagesLoaded(initiator, paginationRequest.spineItem, paginationRequest.elementId)
+                    onPagesLoaded(initiator, paginationRequest)
                 }
                 else
                 {
@@ -249,20 +249,21 @@ var FixedView = function(options, reader){
 
     }
 
-    function onPagesLoaded(initiator, paginationRequest_spineItem, paginationRequest_elementId) {
-        
+    function onPagesLoaded(initiator, paginationRequest) {
+
         updateContentMetaSize();
-        resizeBook();
-        
+        resizeBook(true);
+        onPaginationChanged(initiator, paginationRequest);
+    }
+
+    function onPaginationChanged(initiator, paginationRequest) {
+        paginationRequest = paginationRequest || {};
+        paginationRequest.initiator = initiator;
+        paginationRequest.paginationInfo = self.getPaginationInfo();
+
         window.setTimeout(function () {
-            
             Globals.logEvent("InternalEvents.CURRENT_VIEW_PAGINATION_CHANGED", "EMIT", "fixed_view.js");
-            self.emit(Globals.InternalEvents.CURRENT_VIEW_PAGINATION_CHANGED, {
-                paginationInfo: self.getPaginationInfo(),
-                initiator: initiator,
-                spineItem: paginationRequest_spineItem,
-                elementId: paginationRequest_elementId
-            });
+            self.emit(Globals.InternalEvents.CURRENT_VIEW_PAGINATION_CHANGED, paginationRequest);
         }, 60);
         //this delay of 60ms is to ensure that it triggers
         // after any other 10-50ms timers that defer the pagination process in OnePageView
@@ -506,7 +507,9 @@ var FixedView = function(options, reader){
         
         updatePageSwitchDir(dir === 0 ? 0 : (_spread.spine.isRightToLeft() ? (dir === 1 ? 2 : 1) : dir), hasChanged);
         
-        redraw(paginationRequest.initiator, paginationRequest);
+        if (hasChanged) {
+            redraw(paginationRequest.initiator, paginationRequest); // this will call onPaginationChanged
+        }
     };
 
 

@@ -268,10 +268,10 @@ var ReaderView = function (options) {
             //application will be notified by the same Globals.Events.PAGINATION_CHANGED event
             _mediaOverlayPlayer.onPageChanged(pageChangeData);
 
-            _.defer(function () {
-                Globals.logEvent("PAGINATION_CHANGED", "EMIT", "reader_view.js");
-                self.emit(Globals.Events.PAGINATION_CHANGED, pageChangeData);
-            });
+                _.defer(function () {
+                    Globals.logEvent("PAGINATION_CHANGED", "EMIT", "reader_view.js");
+                    self.emit(Globals.Events.PAGINATION_CHANGED, pageChangeData);
+                });
         });
 
         _currentView.on(Globals.Events.FXL_VIEW_RESIZED, function () {
@@ -283,11 +283,9 @@ var ReaderView = function (options) {
         _currentView.setViewSettings(_viewerSettings);
 
         // we do this to wait until elements are rendered otherwise book is not able to determine view size.
-        setTimeout(function () {
-
+        setTimeout(function() {
             callback(true);
-
-        }, 50);
+        }, 25);
 
     }
 
@@ -590,16 +588,11 @@ console.trace(JSON.stringify(status));
 
                     if (wasPlaying) {
                         self.playMediaOverlay();
-                        // setTimeout(function()
-                        // {
-                        // }, 60);
                     }
 
                     Globals.logEvent("SETTINGS_APPLIED 1 (view update)", "EMIT", "reader_view.js");
                     self.emit(Globals.Events.SETTINGS_APPLIED);
                 });
-                
-                return;
             }
         }
 
@@ -766,10 +759,6 @@ console.trace(JSON.stringify(settingsData));
     function openPage(pageRequest, dir) {
 
         initViewForItem(pageRequest.spineItem, function (isViewChanged) {
-
-            if (!isViewChanged) {
-                _currentView.setViewSettings(_viewerSettings);
-            }
 
             _currentView.openPage(pageRequest, dir);
         });
@@ -1198,7 +1187,7 @@ console.trace(JSON.stringify(settingsData));
 
             initViewForItem(spineItem, function (isViewChanged) {
                 self.openSpineItemElementCfi(bookMark.idref, bookMark.contentCFI, self);
-                return;
+                _currentView.onViewportResize();
             });
         }
         else {
