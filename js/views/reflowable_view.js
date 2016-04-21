@@ -1048,6 +1048,10 @@ var ReflowableView = function(options, reader){
     this.getElementFromPoint = function(x, y) {
         return _navigationLogic.getElementFromPoint(x,y);
     };
+
+    this.getLoadedContentFrames = function () {
+        return [{spineItem: _currentSpineItem, $iframe: _$iframe}];
+    };
 };
     return ReflowableView;
 });

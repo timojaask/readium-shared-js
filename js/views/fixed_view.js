@@ -864,6 +864,16 @@ var FixedView = function(options, reader){
         });
     };
 
+    this.getLoadedContentFrames = function () {
+        var views = getDisplayingViews();
+        var contentDocuments = [];
+        for (var i = 0, count = views.length; i < count; i++) {
+            var view = views[i];
+            contentDocuments.push(view.getLoadedContentFrames()[0]);
+        }
+        return contentDocuments.length ? contentDocuments : undefined;
+    };
+
 };
     return FixedView;
 });

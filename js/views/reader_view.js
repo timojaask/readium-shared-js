@@ -1671,6 +1671,25 @@ console.trace(JSON.stringify(settingsData));
         }
         return undefined;
     };
+
+    /**
+     * Loaded content frame information
+     *
+     * @typedef {object} LoadedContentFrameInfo
+     * @property {jQueryElement} $iframe        The content document's iframe element, jquery wrapped.
+     * @proptery {SpineItem}  The spine item associated with the content frame.
+     */
+
+    /**
+     * Get a list of the currently loaded content iframe references, mapped with the respective spine item idrefs.
+     * @returns {LoadedContentFrameInfo[]}
+     */
+    this.getLoadedContentFrames = function () {
+        if (_currentView && _currentView.getLoadedContentFrames) {
+            return _currentView.getLoadedContentFrames();
+        }
+    };
+
 };
 
 /**
