@@ -120,13 +120,11 @@ var HighlightsManager = function (proxyObj, options) {
 
         liveAnnotations[spineItem.index] = new HighlightsController(context, {getVisibleCfiRangeFn: options.getVisibleCfiRangeFn});
         spines[spineItem.index] = spineItem;
+    };
 
-        // check to see which spine indicies can be culled depending on the currently loaded spine items
-        for(var spineIndex in liveAnnotations) {
-            if (liveAnnotations.hasOwnProperty(spineIndex) && !_.contains(loadedSpineItems, spines[spineIndex])) {
-                delete liveAnnotations[spineIndex];
-            }
-        }
+    this.detachAnnotations = function($iframe, spineItem) {
+        delete liveAnnotations[spineItem.index];
+        delete spines[spineItem.index];
     };
 
     this.getCurrentSelectionCfi = function() {

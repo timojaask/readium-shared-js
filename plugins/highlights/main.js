@@ -223,7 +223,15 @@ define(['readium_js_plugins', 'readium_shared_js/globals', './manager'], functio
 
         reader.on(Globals.Events.CONTENT_DOCUMENT_LOADED, function ($iframe, spineItem) {
             if (_initialized) {
-                _highlightsManager.attachAnnotations($iframe, spineItem, reader.getLoadedSpineItems());
+                _highlightsManager.attachAnnotations($iframe, spineItem);
+            } else {
+                _initializedLate = true;
+            }
+        });
+
+        reader.on(Globals.Events.CONTENT_DOCUMENT_UNLOADED, function ($iframe, spineItem) {
+            if (_initialized) {
+                _highlightsManager.detachAnnotations($iframe, spineItem);
             } else {
                 _initializedLate = true;
             }

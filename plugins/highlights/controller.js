@@ -2,8 +2,6 @@ define(["jquery", "underscore", "./lib/class", "./helpers", "./models/group"],
 function($, _, Class, HighlightHelpers, HighlightGroup) {
     var HighlightsController = Class.extend({
 
-        highlights: [],
-        annotationHash: {},
         offsetTopAddition: 0,
         offsetLeftAddition: 0,
         readerBoundElement: undefined,
@@ -14,6 +12,9 @@ function($, _, Class, HighlightHelpers, HighlightGroup) {
 
             this.epubCFI = EPUBcfi;
             this.readerBoundElement = this.context.document.documentElement;
+
+            this.highlights = [];
+            this.annotationHash = {};
 
             if (options.getVisibleCfiRangeFn) {
                 this.getVisibleCfiRange = options.getVisibleCfiRangeFn;
