@@ -273,34 +273,7 @@ var FixedView = function(options, reader){
     }
 
     function removeOldPageViewElements() {
-        function cleanUpOldPageViews(pageElements) {
-            var numElements = pageElements.length;
-
-            function isOnSamePageOpening() {
-                if (numElements !== 2) {
-                    return false;
-                }
-                
-                var childIFrameElement = pageElements[1].firstChild.firstChild;
-                return !childIFrameElement.hasAttribute("src");
-            }
-
-            if (isOnSamePageOpening()) {
-                return;
-            }
-
-            // Remove all but last page view element from DOM
-            pageElements
-                .slice(0, -1) // take all but last element
-                .each(function(_, element) {
-                    element.remove();
-                });
-        }
-
-        var leftPageElements = _$el.find(".fixed-page-frame-left");
-        cleanUpOldPageViews(leftPageElements);
-        var rightPageElements = _$el.find(".fixed-page-frame-right");
-        cleanUpOldPageViews(rightPageElements);
+        _$el.find(".to-be-removed").remove();
     }
 
     this.onViewportResize = function() {
@@ -540,6 +513,12 @@ var FixedView = function(options, reader){
         if (dir === null || typeof dir === "undefined") dir = 0;
         
         updatePageSwitchDir(dir === 0 ? 0 : (_spread.spine.isRightToLeft() ? (dir === 1 ? 2 : 1) : dir), hasChanged);
+        
+        if (hasChanged) {
+            // Mark current pages for removal after new pages have loaded
+            _$el.find(".fixed-page-frame-left").addClass("to-be-removed");
+            _$el.find(".fixed-page-frame-right").addClass("to-be-removed");
+        }
         
         redraw(paginationRequest.initiator, paginationRequest);
     };
