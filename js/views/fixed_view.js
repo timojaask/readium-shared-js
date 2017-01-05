@@ -266,9 +266,41 @@ var FixedView = function(options, reader){
                 spineItem: paginationRequest_spineItem,
                 elementId: paginationRequest_elementId
             });
+            removeOldPageViewElements();
         }, 60);
         //this delay of 60ms is to ensure that it triggers
         // after any other 10-50ms timers that defer the pagination process in OnePageView
+    }
+
+    function removeOldPageViewElements() {
+        function cleanUpOldPageViews(pageElements) {
+            var numElements = pageElements.length;
+
+            function isOnSamePageOpening() {
+                if (numElements !== 2) {
+                    return false;
+                }
+                
+                var childIFrameElement = pageElements[1].firstChild.firstChild;
+                return !childIFrameElement.hasAttribute("src");
+            }
+
+            if (isOnSamePageOpening()) {
+                return;
+            }
+
+            // Remove all but last page view element from DOM
+            pageElements
+                .slice(0, -1) // take all but last element
+                .each(function(_, element) {
+                    element.remove();
+                });
+        }
+
+        var leftPageElements = _$el.find(".fixed-page-frame-left");
+        cleanUpOldPageViews(leftPageElements);
+        var rightPageElements = _$el.find(".fixed-page-frame-right");
+        cleanUpOldPageViews(rightPageElements);
     }
 
     this.onViewportResize = function() {
@@ -543,10 +575,6 @@ var FixedView = function(options, reader){
             dfd.resolve();
         }
         else {
-
-            //if(pageView.isDisplaying()) { // always DO (no iframe reuse, as this creates problems with BlobURIs, and navigator history ... just like the reflowable view, we re-create an iframe from the template whenever needed for a new spine item URI)
-            pageView.remove();
-            
             //if(!pageView.isDisplaying()) { // always TRUE
             _$el.append(pageView.render().element());
             context.isElementAdded = true;
